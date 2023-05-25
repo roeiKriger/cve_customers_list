@@ -1,31 +1,30 @@
 from methods import *
 from consts import *
+import requests
+from bs4 import BeautifulSoup
 
 customers_list = read_customers_to_an_array()
 # Print the customer names
 for customer in customers_list:
     print(customer)
+
 check_url_integrity(cve_url_list, url_len, regex_rule_for_url)
+links_of_the_month = get_cve_monthly_links()
 
 
-import re
-import requests
-from urllib.parse import urljoin
+# Extract the text inside the <p> tag from each link
+data = []
+for link in links_of_the_month:
+    response = requests.get(link)
+    page_content = response.text
+    soup = BeautifulSoup(page_content, "html.parser")
+    paragraph = soup.find("p", attrs={"data-testid": "vuln-description"})
+    if paragraph:
+        data.append(paragraph.text)
+    break
 
+# Print the extracted text
+for item in data:
+    print(item)
+    break
 
-# Send a GET request to the URL and fetch the page content
-response = requests.get(cve_url_list)
-page_content = response.text
-
-# Use regex to extract relative links starting with "CVE"
-relative_links = re.findall(r'href="/vuln/detail/(CVE-\d+-\d+)"', page_content)
-
-# Construct absolute URLs for the CVE links
-base_url = "https://nvd.nist.gov"
-links = [urljoin(base_url, "vuln/detail/" + link) for link in relative_links]
-
-# Fetch the content of the first link
-check = links[0]
-response = requests.get(check)
-page_content = response.text
-print(page_content)

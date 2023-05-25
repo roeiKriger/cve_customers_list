@@ -1,6 +1,9 @@
 import os
 import json
 import re
+from urllib.parse import urljoin
+import requests
+from consts import *
 
 
 # The method check the length of the url and validates it
@@ -45,3 +48,16 @@ def read_customers_to_an_array():
     # Extract the customer names from the JSON data
     customers = data['customers']
     return customers
+
+
+def get_cve_monthly_links():
+    # Send a GET request to the URL and fetch the page content
+    response = requests.get(cve_url_list)
+    page_content = response.text
+
+    # Use regex to extract relative links starting with "CVE"
+    relative_links = re.findall(r'href="/vuln/detail/(CVE-\d+-\d+)"', page_content)
+
+    # Construct absolute URLs for the CVE links
+    links = [urljoin(site_base_url, "vuln/detail/" + link) for link in relative_links]
+    return links
