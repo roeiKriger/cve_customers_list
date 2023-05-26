@@ -25,9 +25,10 @@ Basic Visualization of the program:
 
 
 
-![image](https://github.com/roeiKriger/cve_customers_list/assets/66572300/fd943aaa-cd56-4b45-87ba-0e955eeb408a)
+![part 1 of the visualization](https://github.com/roeiKriger/cve_customers_list/blob/main/images_visual/part1py.png?raw=true)
 
-![image](https://github.com/roeiKriger/cve_customers_list/assets/66572300/c000a029-b111-4c89-aca0-747807ca9658)
+
+![part 2 of the visualization](https://github.com/roeiKriger/cve_customers_list/blob/main/images_visual/part2py.png?raw=true)
 
 
 
