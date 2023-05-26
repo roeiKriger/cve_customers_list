@@ -1,0 +1,3125 @@
+{
+    "resultsPerPage": 18,
+    "startIndex": 0,
+    "totalResults": 18,
+    "format": "NVD_CVE",
+    "version": "2.0",
+    "timestamp": "2023-05-26T11:27:26.030",
+    "vulnerabilities": [
+        {
+            "cve": {
+                "id": "CVE-2023-26489",
+                "sourceIdentifier": "security-advisories@github.com",
+                "published": "2023-03-08T20:15:09.583",
+                "lastModified": "2023-03-15T18:32:29.833",
+                "vulnStatus": "Analyzed",
+                "descriptions": [
+                    {
+                        "lang": "en",
+                        "value": "wasmtime is a fast and secure runtime for WebAssembly. In affected versions wasmtime's code generator, Cranelift, has a bug on x86_64 targets where address-mode computation mistakenly would calculate a 35-bit effective address instead of WebAssembly's defined 33-bit effective address. This bug means that, with default codegen settings, a wasm-controlled load/store operation could read/write addresses up to 35 bits away from the base of linear memory. Due to this bug, however, addresses up to `0xffffffff * 8 + 0x7ffffffc = 36507222004 = ~34G` bytes away from the base of linear memory are possible from guest code. This means that the virtual memory 6G away from the base of linear memory up to ~34G away can be read/written by a malicious module. A guest module can, without the knowledge of the embedder, read/write memory in this region. The memory may belong to other WebAssembly instances when using the pooling allocator, for example. Affected embedders are recommended to analyze preexisting wasm modules to see if they're affected by the incorrect codegen rules and possibly correlate that with an anomalous number of traps during historical execution to locate possibly suspicious modules. The specific bug in Cranelift's x86_64 backend is that a WebAssembly address which is left-shifted by a constant amount from 1 to 3 will get folded into x86_64's addressing modes which perform shifts. For example `(i32.load (i32.shl (local.get 0) (i32.const 3)))` loads from the WebAssembly address `$local0 << 3`. When translated to Cranelift the `$local0 << 3` computation, a 32-bit value, is zero-extended to a 64-bit value and then added to the base address of linear memory. Cranelift would generate an instruction of the form `movl (%base, %local0, 8), %dst` which calculates `%base + %local0 << 3`. The bug here, however, is that the address computation happens with 64-bit values, where the `$local0 << 3` computation was supposed to be truncated to a a 32-bit value. This means that `%local0`, which can use up to 32-bits for an address, gets 3 extra bits of address space to be accessible via this `movl` instruction. The fix in Cranelift is to remove the erroneous lowering rules in the backend which handle these zero-extended expression. The above example is then translated to `movl %local0, %temp; shl $3, %temp; movl (%base, %temp), %dst` which correctly truncates the intermediate computation of `%local0 << 3` to 32-bits inside the `%temp` register which is then added to the `%base` value. Wasmtime version 4.0.1, 5.0.1, and 6.0.1 have been released and have all been patched to no longer contain the erroneous lowering rules. While updating Wasmtime is recommended, there are a number of possible workarounds that embedders can employ to mitigate this issue if updating is not possible. Note that none of these workarounds are on-by-default and require explicit configuration: 1. The `Config::static_memory_maximum_size(0)` option can be used to force all accesses to linear memory to be explicitly bounds-checked. This will perform a bounds check separately from the address-mode computation which correctly calculates the effective address of a load/store. Note that this can have a large impact on the execution performance of WebAssembly modules. 2. The `Config::static_memory_guard_size(1 << 36)` option can be used to greatly increase the guard pages placed after linear memory. This will guarantee that memory accesses up-to-34G away are guaranteed to be semantically correct by reserving unmapped memory for the instance. Note that this reserves a very large amount of virtual memory per-instances and can greatly reduce the maximum number of concurrent instances being run. 3. If using a non-x86_64 host is possible, then that will also work around this bug. This bug does not affect Wasmtime's or Cranelift's AArch64 backend, for example."
+                    }
+                ],
+                "metrics": {
+                    "cvssMetricV31": [
+                        {
+                            "source": "nvd@nist.gov",
+                            "type": "Primary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "LOW",
+                                "userInteraction": "NONE",
+                                "scope": "CHANGED",
+                                "confidentialityImpact": "HIGH",
+                                "integrityImpact": "HIGH",
+                                "availabilityImpact": "HIGH",
+                                "baseScore": 9.9,
+                                "baseSeverity": "CRITICAL"
+                            },
+                            "exploitabilityScore": 3.1,
+                            "impactScore": 6.0
+                        },
+                        {
+                            "source": "security-advisories@github.com",
+                            "type": "Secondary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "LOW",
+                                "userInteraction": "NONE",
+                                "scope": "CHANGED",
+                                "confidentialityImpact": "HIGH",
+                                "integrityImpact": "HIGH",
+                                "availabilityImpact": "HIGH",
+                                "baseScore": 9.9,
+                                "baseSeverity": "CRITICAL"
+                            },
+                            "exploitabilityScore": 3.1,
+                            "impactScore": 6.0
+                        }
+                    ]
+                },
+                "weaknesses": [
+                    {
+                        "source": "security-advisories@github.com",
+                        "type": "Primary",
+                        "description": [
+                            {
+                                "lang": "en",
+                                "value": "CWE-125"
+                            },
+                            {
+                                "lang": "en",
+                                "value": "CWE-787"
+                            }
+                        ]
+                    }
+                ],
+                "configurations": [
+                    {
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:a:bytecodealliance:cranelift-codegen:*:*:*:*:*:rust:*:*",
+                                        "versionStartIncluding": "0.84.0",
+                                        "versionEndExcluding": "0.91.1",
+                                        "matchCriteriaId": "DBCFE132-FEDA-4A43-AE02-08E150E411D7"
+                                    },
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:a:bytecodealliance:cranelift-codegen:0.92.0:*:*:*:*:rust:*:*",
+                                        "matchCriteriaId": "7D7B0DE4-0071-4056-A243-D0BB71963F93"
+                                    },
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:a:bytecodealliance:cranelift-codegen:0.93.0:*:*:*:*:rust:*:*",
+                                        "matchCriteriaId": "0EC7D2FC-6423-45AE-8F82-A37F93C17285"
+                                    },
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:a:bytecodealliance:wasmtime:*:*:*:*:*:rust:*:*",
+                                        "versionStartIncluding": "0.37.0",
+                                        "versionEndExcluding": "4.0.1",
+                                        "matchCriteriaId": "DD965E87-91DE-4FD2-8AED-37274050D01F"
+                                    },
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:a:bytecodealliance:wasmtime:5.0.0:*:*:*:*:rust:*:*",
+                                        "matchCriteriaId": "87B4AC93-F648-4E7B-9FC7-53D885110E35"
+                                    },
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:a:bytecodealliance:wasmtime:6.0.0:*:*:*:*:rust:*:*",
+                                        "matchCriteriaId": "A21E7233-1DAD-449F-A48F-05BE3DE8E2E0"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "references": [
+                    {
+                        "url": "https://docs.rs/wasmtime/latest/wasmtime/struct.Config.html#method.static_memory_guard_size",
+                        "source": "security-advisories@github.com",
+                        "tags": [
+                            "Product"
+                        ]
+                    },
+                    {
+                        "url": "https://docs.rs/wasmtime/latest/wasmtime/struct.Config.html#method.static_memory_maximum_size",
+                        "source": "security-advisories@github.com",
+                        "tags": [
+                            "Product"
+                        ]
+                    },
+                    {
+                        "url": "https://github.com/bytecodealliance/wasmtime/commit/63fb30e4b4415455d47b3da5a19d79c12f4f2d1f",
+                        "source": "security-advisories@github.com",
+                        "tags": [
+                            "Patch"
+                        ]
+                    },
+                    {
+                        "url": "https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-ff4p-7xrq-q5r8",
+                        "source": "security-advisories@github.com",
+                        "tags": [
+                            "Mitigation",
+                            "Patch",
+                            "Vendor Advisory"
+                        ]
+                    },
+                    {
+                        "url": "https://groups.google.com/a/bytecodealliance.org/g/sec-announce/c/Mov-ItrNJsQ",
+                        "source": "security-advisories@github.com",
+                        "tags": [
+                            "Mailing List",
+                            "Release Notes",
+                            "Vendor Advisory"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "cve": {
+                "id": "CVE-2023-26075",
+                "sourceIdentifier": "cve@mitre.org",
+                "published": "2023-03-10T17:15:10.160",
+                "lastModified": "2023-03-17T16:15:11.950",
+                "vulnStatus": "Modified",
+                "descriptions": [
+                    {
+                        "lang": "en",
+                        "value": "An issue was discovered in Samsung Mobile Chipset and Baseband Modem Chipset for Exynos 850, Exynos 980, Exynos 1080, Exynos 1280, Exynos 2200, Exynos Modem 5123, Exynos Modem 5300, and Exynos Auto T5123. An intra-object overflow in the 5G MM message codec can occur due to insufficient parameter validation when decoding the Service Area List."
+                    }
+                ],
+                "metrics": {
+                    "cvssMetricV31": [
+                        {
+                            "source": "nvd@nist.gov",
+                            "type": "Primary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "NONE",
+                                "userInteraction": "NONE",
+                                "scope": "UNCHANGED",
+                                "confidentialityImpact": "HIGH",
+                                "integrityImpact": "HIGH",
+                                "availabilityImpact": "HIGH",
+                                "baseScore": 9.8,
+                                "baseSeverity": "CRITICAL"
+                            },
+                            "exploitabilityScore": 3.9,
+                            "impactScore": 5.9
+                        },
+                        {
+                            "source": "cve@mitre.org",
+                            "type": "Secondary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:H",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "LOW",
+                                "userInteraction": "NONE",
+                                "scope": "UNCHANGED",
+                                "confidentialityImpact": "LOW",
+                                "integrityImpact": "LOW",
+                                "availabilityImpact": "HIGH",
+                                "baseScore": 7.6,
+                                "baseSeverity": "HIGH"
+                            },
+                            "exploitabilityScore": 2.8,
+                            "impactScore": 4.7
+                        }
+                    ]
+                },
+                "weaknesses": [
+                    {
+                        "source": "nvd@nist.gov",
+                        "type": "Primary",
+                        "description": [
+                            {
+                                "lang": "en",
+                                "value": "CWE-120"
+                            }
+                        ]
+                    }
+                ],
+                "configurations": [
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_850_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "1928760C-4FC4-45B0-84FF-C1105CD1DD2A"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_850:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "BB410A6D-642B-49AE-8B1C-EADA953A84DA"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_980_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "5F18F62E-2012-442E-BE60-6E76325D1824"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_980:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "0D8701B6-6989-44D1-873A-A1823BFD7CCC"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_1080_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "43DE4D6F-D662-46F2-93BC-9AE950320BDE"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_1080:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "EE06CD56-8BFD-4208-843A-179E3E6F5C10"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_1280_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "BD1A7B09-9031-4E54-A24F-3237C054166B"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_1280:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "DFC68046-2F08-40D1-B158-89D8D9263541"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_2200_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "63C0D9AC-BD23-48C9-83E7-301DEC06E583"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_2200:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "A72ADEBB-ED72-4A5B-BB27-95EDE43F8116"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_modem_5123_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "06B60F97-1320-44F5-970C-BBA29F375524"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_modem_5123:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "72419735-076A-4E72-869F-0C7D801371C1"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_modem_5300_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "4F66A096-7BA3-47D6-98F4-879C3A4C1FFC"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_modem_5300:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "CE202894-D48A-4B9E-B3BD-28529967A0B3"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_auto_t5123_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "D4F27BAE-A171-42BF-BAC5-90922780525A"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_auto_t5123:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "5A1895B4-8B31-492E-B4D8-4DC5130C536A"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_w920_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "B6ADED27-EDAF-4FB3-8CB2-AE5F59B93641"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_w920:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "4BF79654-E5C6-4DFF-B33A-A78571CD300C"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "references": [
+                    {
+                        "url": "http://packetstormsecurity.com/files/171387/Shannon-Baseband-NrmmMsgCodec-Intra-Object-Overflow.html",
+                        "source": "cve@mitre.org"
+                    },
+                    {
+                        "url": "https://bugs.chromium.org/p/project-zero/issues/detail?id=2398",
+                        "source": "cve@mitre.org"
+                    },
+                    {
+                        "url": "https://googleprojectzero.blogspot.com/2023/03/multiple-internet-to-baseband-remote-rce.html",
+                        "source": "cve@mitre.org"
+                    },
+                    {
+                        "url": "https://semiconductor.samsung.com/processor/mobile-processor/",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Product"
+                        ]
+                    },
+                    {
+                        "url": "https://semiconductor.samsung.com/processor/modem/",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Product"
+                        ]
+                    },
+                    {
+                        "url": "https://semiconductor.samsung.com/support/quality-support/product-security-updates/",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Vendor Advisory"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "cve": {
+                "id": "CVE-2023-26072",
+                "sourceIdentifier": "cve@mitre.org",
+                "published": "2023-03-13T12:15:11.307",
+                "lastModified": "2023-03-17T16:15:11.517",
+                "vulnStatus": "Modified",
+                "descriptions": [
+                    {
+                        "lang": "en",
+                        "value": "An issue was discovered in Samsung Mobile Chipset and Baseband Modem Chipset for Exynos 850, Exynos 980, Exynos 1080, Exynos 1280, Exynos 2200, Exynos Modem 5123, Exynos Modem 5300, and Exynos Auto T5123. A heap-based buffer overflow in the 5G MM message codec can occur due to insufficient parameter validation when decoding the Emergency number list."
+                    }
+                ],
+                "metrics": {
+                    "cvssMetricV31": [
+                        {
+                            "source": "nvd@nist.gov",
+                            "type": "Primary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "NONE",
+                                "userInteraction": "NONE",
+                                "scope": "UNCHANGED",
+                                "confidentialityImpact": "HIGH",
+                                "integrityImpact": "HIGH",
+                                "availabilityImpact": "HIGH",
+                                "baseScore": 9.8,
+                                "baseSeverity": "CRITICAL"
+                            },
+                            "exploitabilityScore": 3.9,
+                            "impactScore": 5.9
+                        },
+                        {
+                            "source": "cve@mitre.org",
+                            "type": "Secondary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:H",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "LOW",
+                                "userInteraction": "NONE",
+                                "scope": "UNCHANGED",
+                                "confidentialityImpact": "LOW",
+                                "integrityImpact": "LOW",
+                                "availabilityImpact": "HIGH",
+                                "baseScore": 7.6,
+                                "baseSeverity": "HIGH"
+                            },
+                            "exploitabilityScore": 2.8,
+                            "impactScore": 4.7
+                        }
+                    ]
+                },
+                "weaknesses": [
+                    {
+                        "source": "nvd@nist.gov",
+                        "type": "Primary",
+                        "description": [
+                            {
+                                "lang": "en",
+                                "value": "CWE-787"
+                            }
+                        ]
+                    }
+                ],
+                "configurations": [
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_850_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "1928760C-4FC4-45B0-84FF-C1105CD1DD2A"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_850:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "BB410A6D-642B-49AE-8B1C-EADA953A84DA"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_980_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "5F18F62E-2012-442E-BE60-6E76325D1824"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_980:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "0D8701B6-6989-44D1-873A-A1823BFD7CCC"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_1080_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "43DE4D6F-D662-46F2-93BC-9AE950320BDE"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_1080:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "EE06CD56-8BFD-4208-843A-179E3E6F5C10"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_1280_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "BD1A7B09-9031-4E54-A24F-3237C054166B"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_1280:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "DFC68046-2F08-40D1-B158-89D8D9263541"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_2200_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "63C0D9AC-BD23-48C9-83E7-301DEC06E583"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_2200:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "A72ADEBB-ED72-4A5B-BB27-95EDE43F8116"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_modem_5123_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "06B60F97-1320-44F5-970C-BBA29F375524"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_modem_5123:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "72419735-076A-4E72-869F-0C7D801371C1"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_modem_5300_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "4F66A096-7BA3-47D6-98F4-879C3A4C1FFC"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_modem_5300:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "CE202894-D48A-4B9E-B3BD-28529967A0B3"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_auto_t5123_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "D4F27BAE-A171-42BF-BAC5-90922780525A"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_auto_t5123:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "5A1895B4-8B31-492E-B4D8-4DC5130C536A"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_w920_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "B6ADED27-EDAF-4FB3-8CB2-AE5F59B93641"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_w920:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "4BF79654-E5C6-4DFF-B33A-A78571CD300C"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "references": [
+                    {
+                        "url": "http://packetstormsecurity.com/files/171378/Shannon-Baseband-NrmmMsgCodec-Emergency-Number-List-Heap-Buffer-Overflow.html",
+                        "source": "cve@mitre.org"
+                    },
+                    {
+                        "url": "https://bugs.chromium.org/p/project-zero/issues/detail?id=2395",
+                        "source": "cve@mitre.org"
+                    },
+                    {
+                        "url": "https://googleprojectzero.blogspot.com/2023/03/multiple-internet-to-baseband-remote-rce.html",
+                        "source": "cve@mitre.org"
+                    },
+                    {
+                        "url": "https://semiconductor.samsung.com/processor/mobile-processor/",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Product"
+                        ]
+                    },
+                    {
+                        "url": "https://semiconductor.samsung.com/processor/modem/",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Product"
+                        ]
+                    },
+                    {
+                        "url": "https://semiconductor.samsung.com/support/quality-support/product-security-updates/",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Vendor Advisory"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "cve": {
+                "id": "CVE-2023-26074",
+                "sourceIdentifier": "cve@mitre.org",
+                "published": "2023-03-13T13:15:11.903",
+                "lastModified": "2023-03-17T16:15:11.780",
+                "vulnStatus": "Modified",
+                "descriptions": [
+                    {
+                        "lang": "en",
+                        "value": "An issue was discovered in Samsung Mobile Chipset and Baseband Modem Chipset for Exynos 850, Exynos 980, Exynos 1080, Exynos 1280, Exynos 2200, Exynos Modem 5123, Exynos Modem 5300, and Exynos Auto T5123.. A heap-based buffer overflow in the 5G MM message codec can occur due to insufficient parameter validation when decoding operator-defined access category definitions."
+                    }
+                ],
+                "metrics": {
+                    "cvssMetricV31": [
+                        {
+                            "source": "nvd@nist.gov",
+                            "type": "Primary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "NONE",
+                                "userInteraction": "NONE",
+                                "scope": "UNCHANGED",
+                                "confidentialityImpact": "HIGH",
+                                "integrityImpact": "HIGH",
+                                "availabilityImpact": "HIGH",
+                                "baseScore": 9.8,
+                                "baseSeverity": "CRITICAL"
+                            },
+                            "exploitabilityScore": 3.9,
+                            "impactScore": 5.9
+                        },
+                        {
+                            "source": "cve@mitre.org",
+                            "type": "Secondary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:H",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "LOW",
+                                "userInteraction": "NONE",
+                                "scope": "UNCHANGED",
+                                "confidentialityImpact": "LOW",
+                                "integrityImpact": "LOW",
+                                "availabilityImpact": "HIGH",
+                                "baseScore": 7.6,
+                                "baseSeverity": "HIGH"
+                            },
+                            "exploitabilityScore": 2.8,
+                            "impactScore": 4.7
+                        }
+                    ]
+                },
+                "weaknesses": [
+                    {
+                        "source": "nvd@nist.gov",
+                        "type": "Primary",
+                        "description": [
+                            {
+                                "lang": "en",
+                                "value": "CWE-787"
+                            }
+                        ]
+                    }
+                ],
+                "configurations": [
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_850_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "1928760C-4FC4-45B0-84FF-C1105CD1DD2A"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_850:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "BB410A6D-642B-49AE-8B1C-EADA953A84DA"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_980_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "5F18F62E-2012-442E-BE60-6E76325D1824"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_980:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "0D8701B6-6989-44D1-873A-A1823BFD7CCC"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_1080_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "43DE4D6F-D662-46F2-93BC-9AE950320BDE"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_1080:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "EE06CD56-8BFD-4208-843A-179E3E6F5C10"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_1280_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "BD1A7B09-9031-4E54-A24F-3237C054166B"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_1280:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "DFC68046-2F08-40D1-B158-89D8D9263541"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_2200_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "63C0D9AC-BD23-48C9-83E7-301DEC06E583"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_2200:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "A72ADEBB-ED72-4A5B-BB27-95EDE43F8116"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_modem_5123_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "06B60F97-1320-44F5-970C-BBA29F375524"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_modem_5123:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "72419735-076A-4E72-869F-0C7D801371C1"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_modem_5300_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "4F66A096-7BA3-47D6-98F4-879C3A4C1FFC"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_modem_5300:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "CE202894-D48A-4B9E-B3BD-28529967A0B3"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_auto_t5123_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "D4F27BAE-A171-42BF-BAC5-90922780525A"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_auto_t5123:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "5A1895B4-8B31-492E-B4D8-4DC5130C536A"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_w920_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "B6ADED27-EDAF-4FB3-8CB2-AE5F59B93641"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_w920:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "4BF79654-E5C6-4DFF-B33A-A78571CD300C"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "references": [
+                    {
+                        "url": "http://packetstormsecurity.com/files/171383/Shannon-Baseband-NrmmMsgCodec-Access-Category-Definitions-Heap-Buffer-Overflow.html",
+                        "source": "cve@mitre.org"
+                    },
+                    {
+                        "url": "https://bugs.chromium.org/p/project-zero/issues/detail?id=2397",
+                        "source": "cve@mitre.org"
+                    },
+                    {
+                        "url": "https://googleprojectzero.blogspot.com/2023/03/multiple-internet-to-baseband-remote-rce.html",
+                        "source": "cve@mitre.org"
+                    },
+                    {
+                        "url": "https://semiconductor.samsung.com/processor/mobile-processor/",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Product"
+                        ]
+                    },
+                    {
+                        "url": "https://semiconductor.samsung.com/processor/modem/",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Product"
+                        ]
+                    },
+                    {
+                        "url": "https://semiconductor.samsung.com/support/quality-support/product-security-updates/",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Vendor Advisory"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "cve": {
+                "id": "CVE-2023-26073",
+                "sourceIdentifier": "cve@mitre.org",
+                "published": "2023-03-13T14:15:12.973",
+                "lastModified": "2023-03-17T16:15:11.660",
+                "vulnStatus": "Modified",
+                "descriptions": [
+                    {
+                        "lang": "en",
+                        "value": "An issue was discovered in Samsung Mobile Chipset and Baseband Modem Chipset for Exynos 850, Exynos 980, Exynos 1080, Exynos 1280, Exynos 2200, Exynos Modem 5123, Exynos Modem 5300, and Exynos Auto T5123. A heap-based buffer overflow in the 5G MM message codec can occur due to insufficient parameter validation when decoding the extended emergency number list."
+                    }
+                ],
+                "metrics": {
+                    "cvssMetricV31": [
+                        {
+                            "source": "nvd@nist.gov",
+                            "type": "Primary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "NONE",
+                                "userInteraction": "NONE",
+                                "scope": "UNCHANGED",
+                                "confidentialityImpact": "HIGH",
+                                "integrityImpact": "HIGH",
+                                "availabilityImpact": "HIGH",
+                                "baseScore": 9.8,
+                                "baseSeverity": "CRITICAL"
+                            },
+                            "exploitabilityScore": 3.9,
+                            "impactScore": 5.9
+                        },
+                        {
+                            "source": "cve@mitre.org",
+                            "type": "Secondary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:H",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "LOW",
+                                "userInteraction": "NONE",
+                                "scope": "UNCHANGED",
+                                "confidentialityImpact": "LOW",
+                                "integrityImpact": "LOW",
+                                "availabilityImpact": "HIGH",
+                                "baseScore": 7.6,
+                                "baseSeverity": "HIGH"
+                            },
+                            "exploitabilityScore": 2.8,
+                            "impactScore": 4.7
+                        }
+                    ]
+                },
+                "weaknesses": [
+                    {
+                        "source": "nvd@nist.gov",
+                        "type": "Primary",
+                        "description": [
+                            {
+                                "lang": "en",
+                                "value": "CWE-787"
+                            }
+                        ]
+                    }
+                ],
+                "configurations": [
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_850_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "1928760C-4FC4-45B0-84FF-C1105CD1DD2A"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_850:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "BB410A6D-642B-49AE-8B1C-EADA953A84DA"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_980_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "5F18F62E-2012-442E-BE60-6E76325D1824"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_980:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "0D8701B6-6989-44D1-873A-A1823BFD7CCC"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_1080_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "43DE4D6F-D662-46F2-93BC-9AE950320BDE"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_1080:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "EE06CD56-8BFD-4208-843A-179E3E6F5C10"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_1280_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "BD1A7B09-9031-4E54-A24F-3237C054166B"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_1280:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "DFC68046-2F08-40D1-B158-89D8D9263541"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_2200_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "63C0D9AC-BD23-48C9-83E7-301DEC06E583"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_2200:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "A72ADEBB-ED72-4A5B-BB27-95EDE43F8116"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_modem_5123_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "06B60F97-1320-44F5-970C-BBA29F375524"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_modem_5123:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "72419735-076A-4E72-869F-0C7D801371C1"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_modem_5300_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "4F66A096-7BA3-47D6-98F4-879C3A4C1FFC"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_modem_5300:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "CE202894-D48A-4B9E-B3BD-28529967A0B3"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_auto_t5123_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "D4F27BAE-A171-42BF-BAC5-90922780525A"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_auto_t5123:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "5A1895B4-8B31-492E-B4D8-4DC5130C536A"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_w920_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "B6ADED27-EDAF-4FB3-8CB2-AE5F59B93641"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_w920:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "4BF79654-E5C6-4DFF-B33A-A78571CD300C"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "references": [
+                    {
+                        "url": "http://packetstormsecurity.com/files/171380/Shannon-Baseband-NrmmMsgCodec-Extended-Emergency-Number-List-Heap-Buffer-Overflow.html",
+                        "source": "cve@mitre.org"
+                    },
+                    {
+                        "url": "https://bugs.chromium.org/p/project-zero/issues/detail?id=2396",
+                        "source": "cve@mitre.org"
+                    },
+                    {
+                        "url": "https://googleprojectzero.blogspot.com/2023/03/multiple-internet-to-baseband-remote-rce.html",
+                        "source": "cve@mitre.org"
+                    },
+                    {
+                        "url": "https://semiconductor.samsung.com/processor/mobile-processor/",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Product"
+                        ]
+                    },
+                    {
+                        "url": "https://semiconductor.samsung.com/processor/modem/",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Product"
+                        ]
+                    },
+                    {
+                        "url": "https://semiconductor.samsung.com/support/quality-support/product-security-updates/",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Vendor Advisory"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "cve": {
+                "id": "CVE-2023-26076",
+                "sourceIdentifier": "cve@mitre.org",
+                "published": "2023-03-13T15:15:12.720",
+                "lastModified": "2023-03-20T15:15:11.857",
+                "vulnStatus": "Modified",
+                "descriptions": [
+                    {
+                        "lang": "en",
+                        "value": "An issue was discovered in Samsung Mobile Chipset and Baseband Modem Chipset for Exynos 1280, Exynos 2200, Exynos Modem 5123, Exynos Modem 5300, and Exynos Auto T5123. An intra-object overflow in the 5G SM message codec can occur due to insufficient parameter validation when decoding reserved options."
+                    }
+                ],
+                "metrics": {
+                    "cvssMetricV31": [
+                        {
+                            "source": "nvd@nist.gov",
+                            "type": "Primary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "NONE",
+                                "userInteraction": "NONE",
+                                "scope": "UNCHANGED",
+                                "confidentialityImpact": "HIGH",
+                                "integrityImpact": "HIGH",
+                                "availabilityImpact": "HIGH",
+                                "baseScore": 9.8,
+                                "baseSeverity": "CRITICAL"
+                            },
+                            "exploitabilityScore": 3.9,
+                            "impactScore": 5.9
+                        },
+                        {
+                            "source": "cve@mitre.org",
+                            "type": "Secondary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:H",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "LOW",
+                                "userInteraction": "NONE",
+                                "scope": "UNCHANGED",
+                                "confidentialityImpact": "LOW",
+                                "integrityImpact": "LOW",
+                                "availabilityImpact": "HIGH",
+                                "baseScore": 7.6,
+                                "baseSeverity": "HIGH"
+                            },
+                            "exploitabilityScore": 2.8,
+                            "impactScore": 4.7
+                        }
+                    ]
+                },
+                "weaknesses": [
+                    {
+                        "source": "nvd@nist.gov",
+                        "type": "Primary",
+                        "description": [
+                            {
+                                "lang": "en",
+                                "value": "CWE-120"
+                            }
+                        ]
+                    }
+                ],
+                "configurations": [
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_1280_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "BD1A7B09-9031-4E54-A24F-3237C054166B"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_1280:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "DFC68046-2F08-40D1-B158-89D8D9263541"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_2200_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "63C0D9AC-BD23-48C9-83E7-301DEC06E583"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_2200:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "A72ADEBB-ED72-4A5B-BB27-95EDE43F8116"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_modem_5123_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "06B60F97-1320-44F5-970C-BBA29F375524"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_modem_5123:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "72419735-076A-4E72-869F-0C7D801371C1"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_modem_5300_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "4F66A096-7BA3-47D6-98F4-879C3A4C1FFC"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_modem_5300:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "CE202894-D48A-4B9E-B3BD-28529967A0B3"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "operator": "AND",
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:samsung:exynos_auto_t5123_firmware:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "D4F27BAE-A171-42BF-BAC5-90922780525A"
+                                    }
+                                ]
+                            },
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": false,
+                                        "criteria": "cpe:2.3:h:samsung:exynos_auto_t5123:-:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "5A1895B4-8B31-492E-B4D8-4DC5130C536A"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "references": [
+                    {
+                        "url": "http://packetstormsecurity.com/files/171400/Shannon-Baseband-NrSmPcoCodec-Intra-Object-Overflow.html",
+                        "source": "cve@mitre.org"
+                    },
+                    {
+                        "url": "https://googleprojectzero.blogspot.com/2023/03/multiple-internet-to-baseband-remote-rce.html",
+                        "source": "cve@mitre.org"
+                    },
+                    {
+                        "url": "https://semiconductor.samsung.com/processor/mobile-processor/",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Product"
+                        ]
+                    },
+                    {
+                        "url": "https://semiconductor.samsung.com/processor/modem/",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Product"
+                        ]
+                    },
+                    {
+                        "url": "https://semiconductor.samsung.com/support/quality-support/product-security-updates/",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Vendor Advisory"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "cve": {
+                "id": "CVE-2023-0037",
+                "sourceIdentifier": "contact@wpscan.com",
+                "published": "2023-03-13T17:15:12.087",
+                "lastModified": "2023-03-16T15:51:35.910",
+                "vulnStatus": "Analyzed",
+                "descriptions": [
+                    {
+                        "lang": "en",
+                        "value": "The 10Web Map Builder for Google Maps WordPress plugin before 1.0.73 does not properly sanitise and escape some parameters before using them in an SQL statement via an AJAX action available to unauthenticated users, leading to a SQL injection"
+                    }
+                ],
+                "metrics": {
+                    "cvssMetricV31": [
+                        {
+                            "source": "nvd@nist.gov",
+                            "type": "Primary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "NONE",
+                                "userInteraction": "NONE",
+                                "scope": "UNCHANGED",
+                                "confidentialityImpact": "HIGH",
+                                "integrityImpact": "HIGH",
+                                "availabilityImpact": "HIGH",
+                                "baseScore": 9.8,
+                                "baseSeverity": "CRITICAL"
+                            },
+                            "exploitabilityScore": 3.9,
+                            "impactScore": 5.9
+                        }
+                    ]
+                },
+                "weaknesses": [
+                    {
+                        "source": "contact@wpscan.com",
+                        "type": "Primary",
+                        "description": [
+                            {
+                                "lang": "en",
+                                "value": "CWE-89"
+                            }
+                        ]
+                    }
+                ],
+                "configurations": [
+                    {
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:a:10web:map_builder_for_google_maps:*:*:*:*:*:wordpress:*:*",
+                                        "versionEndExcluding": "1.0.73",
+                                        "matchCriteriaId": "9842C196-76F8-4A79-B68C-43DE9DB76E6A"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "references": [
+                    {
+                        "url": "https://wpscan.com/vulnerability/33ab1fe2-6611-4f43-91ba-52c56f02ed56",
+                        "source": "contact@wpscan.com",
+                        "tags": [
+                            "Exploit",
+                            "Third Party Advisory"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "cve": {
+                "id": "CVE-2023-1529",
+                "sourceIdentifier": "chrome-cve-admin@google.com",
+                "published": "2023-03-21T21:15:12.357",
+                "lastModified": "2023-04-15T04:16:04.500",
+                "vulnStatus": "Modified",
+                "descriptions": [
+                    {
+                        "lang": "en",
+                        "value": "Out of bounds memory access in WebHID in Google Chrome prior to 111.0.5563.110 allowed a remote attacker to potentially exploit heap corruption via a malicious HID device. (Chromium security severity: High)"
+                    }
+                ],
+                "metrics": {
+                    "cvssMetricV31": [
+                        {
+                            "source": "nvd@nist.gov",
+                            "type": "Primary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "NONE",
+                                "userInteraction": "NONE",
+                                "scope": "UNCHANGED",
+                                "confidentialityImpact": "HIGH",
+                                "integrityImpact": "HIGH",
+                                "availabilityImpact": "HIGH",
+                                "baseScore": 9.8,
+                                "baseSeverity": "CRITICAL"
+                            },
+                            "exploitabilityScore": 3.9,
+                            "impactScore": 5.9
+                        }
+                    ]
+                },
+                "weaknesses": [
+                    {
+                        "source": "nvd@nist.gov",
+                        "type": "Primary",
+                        "description": [
+                            {
+                                "lang": "en",
+                                "value": "CWE-119"
+                            }
+                        ]
+                    }
+                ],
+                "configurations": [
+                    {
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:a:google:chrome:*:*:*:*:*:*:*:*",
+                                        "versionEndExcluding": "111.0.5563.110",
+                                        "matchCriteriaId": "F71F8C2B-9C13-4A8B-B404-066DDFF45006"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "references": [
+                    {
+                        "url": "https://chromereleases.googleblog.com/2023/03/stable-channel-update-for-desktop_21.html",
+                        "source": "chrome-cve-admin@google.com",
+                        "tags": [
+                            "Release Notes",
+                            "Vendor Advisory"
+                        ]
+                    },
+                    {
+                        "url": "https://crbug.com/1419718",
+                        "source": "chrome-cve-admin@google.com",
+                        "tags": [
+                            "Permissions Required"
+                        ]
+                    },
+                    {
+                        "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/FG3CRADL7IL5IHK4NCHG4LAYLKHFXETX/",
+                        "source": "chrome-cve-admin@google.com"
+                    },
+                    {
+                        "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/HO3QZY4UQFP4XNF43ILMVVOABMB7KAQ5/",
+                        "source": "chrome-cve-admin@google.com"
+                    },
+                    {
+                        "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/NGWWGQULJ7QRNP4GY57HE7OO7VMRWMPN/",
+                        "source": "chrome-cve-admin@google.com"
+                    }
+                ]
+            }
+        },
+        {
+            "cve": {
+                "id": "CVE-2023-24538",
+                "sourceIdentifier": "security@golang.org",
+                "published": "2023-04-06T16:15:07.800",
+                "lastModified": "2023-04-17T16:54:18.527",
+                "vulnStatus": "Analyzed",
+                "descriptions": [
+                    {
+                        "lang": "en",
+                        "value": "Templates do not properly consider backticks (`) as Javascript string delimiters, and do not escape them as expected. Backticks are used, since ES6, for JS template literals. If a template contains a Go template action within a Javascript template literal, the contents of the action can be used to terminate the literal, injecting arbitrary Javascript code into the Go template. As ES6 template literals are rather complex, and themselves can do string interpolation, the decision was made to simply disallow Go template actions from being used inside of them (e.g. \"var a = {{.}}\"), since there is no obviously safe way to allow this behavior. This takes the same approach as github.com/google/safehtml. With fix, Template.Parse returns an Error when it encounters templates like this, with an ErrorCode of value 12. This ErrorCode is currently unexported, but will be exported in the release of Go 1.21. Users who rely on the previous behavior can re-enable it using the GODEBUG flag jstmpllitinterp=1, with the caveat that backticks will now be escaped. This should be used with caution."
+                    }
+                ],
+                "metrics": {
+                    "cvssMetricV31": [
+                        {
+                            "source": "nvd@nist.gov",
+                            "type": "Primary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "NONE",
+                                "userInteraction": "NONE",
+                                "scope": "UNCHANGED",
+                                "confidentialityImpact": "HIGH",
+                                "integrityImpact": "HIGH",
+                                "availabilityImpact": "HIGH",
+                                "baseScore": 9.8,
+                                "baseSeverity": "CRITICAL"
+                            },
+                            "exploitabilityScore": 3.9,
+                            "impactScore": 5.9
+                        }
+                    ]
+                },
+                "weaknesses": [
+                    {
+                        "source": "nvd@nist.gov",
+                        "type": "Primary",
+                        "description": [
+                            {
+                                "lang": "en",
+                                "value": "CWE-94"
+                            }
+                        ]
+                    },
+                    {
+                        "source": "security@golang.org",
+                        "type": "Secondary",
+                        "description": [
+                            {
+                                "lang": "en",
+                                "value": "CWE-94"
+                            }
+                        ]
+                    }
+                ],
+                "configurations": [
+                    {
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:a:golang:go:*:*:*:*:*:*:*:*",
+                                        "versionEndExcluding": "1.19.8",
+                                        "matchCriteriaId": "5932E25E-7F00-4D6E-AFF8-4C5797AE628B"
+                                    },
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:a:golang:go:*:*:*:*:*:*:*:*",
+                                        "versionStartIncluding": "1.20.0",
+                                        "versionEndExcluding": "1.20.3",
+                                        "matchCriteriaId": "66CADC8B-8F8A-493C-8819-852F0AE224AC"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "references": [
+                    {
+                        "url": "https://go.dev/cl/482079",
+                        "source": "security@golang.org",
+                        "tags": [
+                            "Patch"
+                        ]
+                    },
+                    {
+                        "url": "https://go.dev/issue/59234",
+                        "source": "security@golang.org",
+                        "tags": [
+                            "Issue Tracking",
+                            "Patch"
+                        ]
+                    },
+                    {
+                        "url": "https://groups.google.com/g/golang-announce/c/Xdv6JL9ENs8",
+                        "source": "security@golang.org",
+                        "tags": [
+                            "Mailing List"
+                        ]
+                    },
+                    {
+                        "url": "https://pkg.go.dev/vuln/GO-2023-1703",
+                        "source": "security@golang.org",
+                        "tags": [
+                            "Vendor Advisory"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "cve": {
+                "id": "CVE-2023-27650",
+                "sourceIdentifier": "cve@mitre.org",
+                "published": "2023-04-10T17:15:07.030",
+                "lastModified": "2023-04-14T16:43:48.053",
+                "vulnStatus": "Analyzed",
+                "descriptions": [
+                    {
+                        "lang": "en",
+                        "value": "An issue found in APUS Group Launcher v.3.10.73 and v.3.10.88 allows a remote attacker to execute arbitrary code via the FONT_FILE parameter."
+                    }
+                ],
+                "metrics": {
+                    "cvssMetricV31": [
+                        {
+                            "source": "nvd@nist.gov",
+                            "type": "Primary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "NONE",
+                                "userInteraction": "NONE",
+                                "scope": "UNCHANGED",
+                                "confidentialityImpact": "HIGH",
+                                "integrityImpact": "HIGH",
+                                "availabilityImpact": "HIGH",
+                                "baseScore": 9.8,
+                                "baseSeverity": "CRITICAL"
+                            },
+                            "exploitabilityScore": 3.9,
+                            "impactScore": 5.9
+                        }
+                    ]
+                },
+                "weaknesses": [
+                    {
+                        "source": "nvd@nist.gov",
+                        "type": "Primary",
+                        "description": [
+                            {
+                                "lang": "en",
+                                "value": "NVD-CWE-noinfo"
+                            }
+                        ]
+                    }
+                ],
+                "configurations": [
+                    {
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:a:apusapps:launcher:3.10.73:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "7065BDFB-6915-44B3-93E7-040078F53581"
+                                    },
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:a:apusapps:launcher:3.10.88:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "110E36DC-759F-4AD7-86E2-16173462C03A"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "references": [
+                    {
+                        "url": "https://github.com/LianKee/SODA/blob/main/CVEs/CVE-2023-27650/CVE%20detail.md",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Exploit",
+                            "Third Party Advisory"
+                        ]
+                    },
+                    {
+                        "url": "https://play.google.com/store/apps/details?id=com.apusapps.launcher",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Product"
+                        ]
+                    },
+                    {
+                        "url": "https://www.apusapps.com/en/launcher",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Product"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "cve": {
+                "id": "CVE-2023-27645",
+                "sourceIdentifier": "cve@mitre.org",
+                "published": "2023-04-11T12:15:07.740",
+                "lastModified": "2023-04-18T18:57:48.457",
+                "vulnStatus": "Analyzed",
+                "descriptions": [
+                    {
+                        "lang": "en",
+                        "value": "An issue found in POWERAMP audioplayer build 925 bundle play and build 954 allows a remote attacker to gain privileges via the reverb and EQ preset parameters."
+                    }
+                ],
+                "metrics": {
+                    "cvssMetricV31": [
+                        {
+                            "source": "nvd@nist.gov",
+                            "type": "Primary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "NONE",
+                                "userInteraction": "NONE",
+                                "scope": "UNCHANGED",
+                                "confidentialityImpact": "HIGH",
+                                "integrityImpact": "HIGH",
+                                "availabilityImpact": "HIGH",
+                                "baseScore": 9.8,
+                                "baseSeverity": "CRITICAL"
+                            },
+                            "exploitabilityScore": 3.9,
+                            "impactScore": 5.9
+                        }
+                    ]
+                },
+                "weaknesses": [
+                    {
+                        "source": "nvd@nist.gov",
+                        "type": "Primary",
+                        "description": [
+                            {
+                                "lang": "en",
+                                "value": "NVD-CWE-noinfo"
+                            }
+                        ]
+                    }
+                ],
+                "configurations": [
+                    {
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:a:powerampapp:poweramp:-:build_925:*:*:*:android:*:*",
+                                        "matchCriteriaId": "0FC55470-173F-4E8E-80BB-DD0F2C76C94F"
+                                    },
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:a:powerampapp:poweramp:-:build_954:*:*:*:android:*:*",
+                                        "matchCriteriaId": "1799C130-D43D-4B71-BD81-8000F6225B78"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "references": [
+                    {
+                        "url": "https://github.com/LianKee/SODA/blob/main/CVEs/CVE-2023-27645/CVE%20detail.md",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Exploit",
+                            "Third Party Advisory"
+                        ]
+                    },
+                    {
+                        "url": "https://play.google.com/store/apps/details?id=com.maxmpz.audioplayer",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Product"
+                        ]
+                    },
+                    {
+                        "url": "https://powerampapp.com/",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Product"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "cve": {
+                "id": "CVE-2023-27779",
+                "sourceIdentifier": "cve@mitre.org",
+                "published": "2023-04-13T17:15:16.570",
+                "lastModified": "2023-04-21T04:18:35.387",
+                "vulnStatus": "Analyzed",
+                "descriptions": [
+                    {
+                        "lang": "en",
+                        "value": "AM Presencia v3.7.3 was discovered to contain a SQL injection vulnerability via the user parameter in the login form."
+                    }
+                ],
+                "metrics": {
+                    "cvssMetricV31": [
+                        {
+                            "source": "nvd@nist.gov",
+                            "type": "Primary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "NONE",
+                                "userInteraction": "NONE",
+                                "scope": "UNCHANGED",
+                                "confidentialityImpact": "HIGH",
+                                "integrityImpact": "HIGH",
+                                "availabilityImpact": "HIGH",
+                                "baseScore": 9.8,
+                                "baseSeverity": "CRITICAL"
+                            },
+                            "exploitabilityScore": 3.9,
+                            "impactScore": 5.9
+                        }
+                    ]
+                },
+                "weaknesses": [
+                    {
+                        "source": "nvd@nist.gov",
+                        "type": "Primary",
+                        "description": [
+                            {
+                                "lang": "en",
+                                "value": "CWE-89"
+                            }
+                        ]
+                    }
+                ],
+                "configurations": [
+                    {
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:a:amsystem:am_presencia:3.7.3:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "77E530D1-7184-4AD9-A36F-48841C4E298F"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "references": [
+                    {
+                        "url": "http://alo.com",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Not Applicable"
+                        ]
+                    },
+                    {
+                        "url": "https://amsystem.es/",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Product"
+                        ]
+                    },
+                    {
+                        "url": "https://docs.google.com/document/d/1kGzmc6AOCfRzJf9mDz4emkhQj84Y1XemmAMZjYK32-o/edit?usp=sharing",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Exploit",
+                            "Third Party Advisory"
+                        ]
+                    },
+                    {
+                        "url": "https://portalempleado.alosuite.com/home",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Not Applicable"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "cve": {
+                "id": "CVE-2022-47027",
+                "sourceIdentifier": "cve@mitre.org",
+                "published": "2023-04-14T12:15:07.320",
+                "lastModified": "2023-04-21T03:44:59.603",
+                "vulnStatus": "Analyzed",
+                "descriptions": [
+                    {
+                        "lang": "en",
+                        "value": "Timmystudios Fast Typing Keyboard v1.275.1.162 allows unauthorized apps to overwrite arbitrary files in its internal storage via a dictionary traversal vulnerability and achieve arbitrary code execution."
+                    }
+                ],
+                "metrics": {
+                    "cvssMetricV31": [
+                        {
+                            "source": "nvd@nist.gov",
+                            "type": "Primary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "NONE",
+                                "userInteraction": "NONE",
+                                "scope": "UNCHANGED",
+                                "confidentialityImpact": "HIGH",
+                                "integrityImpact": "HIGH",
+                                "availabilityImpact": "HIGH",
+                                "baseScore": 9.8,
+                                "baseSeverity": "CRITICAL"
+                            },
+                            "exploitabilityScore": 3.9,
+                            "impactScore": 5.9
+                        }
+                    ]
+                },
+                "weaknesses": [
+                    {
+                        "source": "nvd@nist.gov",
+                        "type": "Primary",
+                        "description": [
+                            {
+                                "lang": "en",
+                                "value": "CWE-22"
+                            }
+                        ]
+                    }
+                ],
+                "configurations": [
+                    {
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:a:timmystudios:fast_typing_keyboard:1.275.1.162:*:*:*:*:android:*:*",
+                                        "matchCriteriaId": "080CF6CB-8CC7-471F-957A-A02945044542"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "references": [
+                    {
+                        "url": "https://corporate.timmystudios.com/",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Product"
+                        ]
+                    },
+                    {
+                        "url": "https://github.com/LianKee/SODA/blob/main/CVEs/CVE-2022-47027/CVE%20detail.md",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Exploit",
+                            "Third Party Advisory"
+                        ]
+                    },
+                    {
+                        "url": "https://play.google.com/store/apps/details?id=com.jb.gokeyboard.theme.timssfasttypingkeyboard",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Broken Link"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "cve": {
+                "id": "CVE-2023-27648",
+                "sourceIdentifier": "cve@mitre.org",
+                "published": "2023-04-14T12:15:07.570",
+                "lastModified": "2023-04-21T04:15:33.550",
+                "vulnStatus": "Analyzed",
+                "descriptions": [
+                    {
+                        "lang": "en",
+                        "value": "Directory Traversal vulnerability found in T-ME Studios Change Color of Keypad v.1.275.1.277 allows a remote attacker to execute arbitrary code via the dex file in the internal storage."
+                    }
+                ],
+                "metrics": {
+                    "cvssMetricV31": [
+                        {
+                            "source": "nvd@nist.gov",
+                            "type": "Primary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "NONE",
+                                "userInteraction": "NONE",
+                                "scope": "UNCHANGED",
+                                "confidentialityImpact": "HIGH",
+                                "integrityImpact": "HIGH",
+                                "availabilityImpact": "HIGH",
+                                "baseScore": 9.8,
+                                "baseSeverity": "CRITICAL"
+                            },
+                            "exploitabilityScore": 3.9,
+                            "impactScore": 5.9
+                        }
+                    ]
+                },
+                "weaknesses": [
+                    {
+                        "source": "nvd@nist.gov",
+                        "type": "Primary",
+                        "description": [
+                            {
+                                "lang": "en",
+                                "value": "CWE-22"
+                            }
+                        ]
+                    }
+                ],
+                "configurations": [
+                    {
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:a:timmystudios:change_color_of_keypad:1.275.1.277:*:*:*:*:android:*:*",
+                                        "matchCriteriaId": "B3A62F3C-E911-475D-98D1-1F4E2DF185CF"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "references": [
+                    {
+                        "url": "https://corporate.timmystudios.com/",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Product"
+                        ]
+                    },
+                    {
+                        "url": "https://github.com/LianKee/SODA/blob/main/CVEs/CVE-2023-27648/CVE%20detail.md",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Exploit",
+                            "Third Party Advisory"
+                        ]
+                    },
+                    {
+                        "url": "https://play.google.com/store/apps/details?id=com.jb.gokeyboard.theme.twchangecolorofkeypad",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Product"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "cve": {
+                "id": "CVE-2023-27654",
+                "sourceIdentifier": "cve@mitre.org",
+                "published": "2023-04-14T20:15:09.613",
+                "lastModified": "2023-04-24T17:45:57.907",
+                "vulnStatus": "Analyzed",
+                "descriptions": [
+                    {
+                        "lang": "en",
+                        "value": "An issue found in WHOv.1.0.28, v.1.0.30, v.1.0.32 allows an attacker to cause a escalation of privileges via the TTMultiProvider component."
+                    }
+                ],
+                "metrics": {
+                    "cvssMetricV31": [
+                        {
+                            "source": "nvd@nist.gov",
+                            "type": "Primary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "NONE",
+                                "userInteraction": "NONE",
+                                "scope": "UNCHANGED",
+                                "confidentialityImpact": "HIGH",
+                                "integrityImpact": "HIGH",
+                                "availabilityImpact": "HIGH",
+                                "baseScore": 9.8,
+                                "baseSeverity": "CRITICAL"
+                            },
+                            "exploitabilityScore": 3.9,
+                            "impactScore": 5.9
+                        }
+                    ]
+                },
+                "weaknesses": [
+                    {
+                        "source": "nvd@nist.gov",
+                        "type": "Primary",
+                        "description": [
+                            {
+                                "lang": "en",
+                                "value": "NVD-CWE-noinfo"
+                            }
+                        ]
+                    }
+                ],
+                "configurations": [
+                    {
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:a:whoapp:who:1.0.28:*:*:*:*:android:*:*",
+                                        "matchCriteriaId": "D65B4915-2010-4CE5-86B5-81AA1D5118A5"
+                                    },
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:a:whoapp:who:1.0.30:*:*:*:*:android:*:*",
+                                        "matchCriteriaId": "CF719AC2-12A1-415E-88C5-95E00E39C80A"
+                                    },
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:a:whoapp:who:1.0.32:*:*:*:*:android:*:*",
+                                        "matchCriteriaId": "0D015EB8-A0C3-4B31-A735-31BC102B31D7"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "references": [
+                    {
+                        "url": "https://github.com/LianKee/SODA/blob/main/CVEs/CVE-2023-27654/CVE%20detail.md",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Exploit"
+                        ]
+                    },
+                    {
+                        "url": "https://play.google.com/store/apps/details?id=com.scorp.who",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Product"
+                        ]
+                    },
+                    {
+                        "url": "https://www.whoapp.live/",
+                        "source": "cve@mitre.org",
+                        "tags": [
+                            "Product"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "cve": {
+                "id": "CVE-2023-2136",
+                "sourceIdentifier": "chrome-cve-admin@google.com",
+                "published": "2023-04-19T04:15:31.607",
+                "lastModified": "2023-05-02T03:15:08.647",
+                "vulnStatus": "Modified",
+                "cisaExploitAdd": "2023-04-21",
+                "cisaActionDue": "2023-05-12",
+                "cisaRequiredAction": "Apply updates per vendor instructions.",
+                "cisaVulnerabilityName": "Google Chrome Skia Integer Overflow Vulnerability",
+                "descriptions": [
+                    {
+                        "lang": "en",
+                        "value": "Integer overflow in Skia in Google Chrome prior to 112.0.5615.137 allowed a remote attacker who had compromised the renderer process to potentially perform a sandbox escape via a crafted HTML page. (Chromium security severity: High)"
+                    }
+                ],
+                "metrics": {
+                    "cvssMetricV31": [
+                        {
+                            "source": "nvd@nist.gov",
+                            "type": "Primary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:H/I:H/A:H",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "NONE",
+                                "userInteraction": "REQUIRED",
+                                "scope": "CHANGED",
+                                "confidentialityImpact": "HIGH",
+                                "integrityImpact": "HIGH",
+                                "availabilityImpact": "HIGH",
+                                "baseScore": 9.6,
+                                "baseSeverity": "CRITICAL"
+                            },
+                            "exploitabilityScore": 2.8,
+                            "impactScore": 6.0
+                        }
+                    ]
+                },
+                "weaknesses": [
+                    {
+                        "source": "nvd@nist.gov",
+                        "type": "Primary",
+                        "description": [
+                            {
+                                "lang": "en",
+                                "value": "CWE-190"
+                            }
+                        ]
+                    }
+                ],
+                "configurations": [
+                    {
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:a:google:chrome:*:*:*:*:*:*:*:*",
+                                        "versionEndExcluding": "112.0.5615.137",
+                                        "matchCriteriaId": "2627A54A-F43B-4F8D-BAA8-A575E1C6D10E"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:debian:debian_linux:11.0:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "FA6FEEC2-9F11-4643-8827-749718254FED"
+                                    },
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:fedoraproject:fedora:36:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "5C675112-476C-4D7C-BCB9-A2FB2D0BC9FD"
+                                    },
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:fedoraproject:fedora:37:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "E30D0E6F-4AE8-4284-8716-991DFA48CC5D"
+                                    },
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:o:fedoraproject:fedora:38:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "CC559B26-5DFC-4B7A-A27C-B77DE755DFF9"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "references": [
+                    {
+                        "url": "https://chromereleases.googleblog.com/2023/04/stable-channel-update-for-desktop_18.html",
+                        "source": "chrome-cve-admin@google.com",
+                        "tags": [
+                            "Release Notes",
+                            "Vendor Advisory"
+                        ]
+                    },
+                    {
+                        "url": "https://crbug.com/1432603",
+                        "source": "chrome-cve-admin@google.com",
+                        "tags": [
+                            "Issue Tracking",
+                            "Third Party Advisory"
+                        ]
+                    },
+                    {
+                        "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/4AOSGAOPXLBK4A5ZRTVZ4M6QKVLSWMWG/",
+                        "source": "chrome-cve-admin@google.com",
+                        "tags": [
+                            "Mailing List"
+                        ]
+                    },
+                    {
+                        "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/ES2CDRHR2Y4WY6DNDIAPYZFXJU3ZBFAV/",
+                        "source": "chrome-cve-admin@google.com"
+                    },
+                    {
+                        "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/FEJZMAUB4XP44HSHEBDWEKFGA7DUHY42/",
+                        "source": "chrome-cve-admin@google.com",
+                        "tags": [
+                            "Mailing List"
+                        ]
+                    },
+                    {
+                        "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/IHHD6KNH4WLUE6JG6HRQZWNAJMHJ32X7/",
+                        "source": "chrome-cve-admin@google.com",
+                        "tags": [
+                            "Mailing List",
+                            "Third Party Advisory"
+                        ]
+                    },
+                    {
+                        "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/RJQI63HWZFL6M26Q6UOHKDY6LD2PFC5Z/",
+                        "source": "chrome-cve-admin@google.com",
+                        "tags": [
+                            "Mailing List"
+                        ]
+                    },
+                    {
+                        "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/SLO7BL2MHZYPY6O3OAEAQL3SKYMGGO6M/",
+                        "source": "chrome-cve-admin@google.com"
+                    },
+                    {
+                        "url": "https://www.debian.org/security/2023/dsa-5393",
+                        "source": "chrome-cve-admin@google.com",
+                        "tags": [
+                            "Third Party Advisory"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "cve": {
+                "id": "CVE-2023-2246",
+                "sourceIdentifier": "cna@vuldb.com",
+                "published": "2023-04-23T16:15:07.107",
+                "lastModified": "2023-05-05T19:15:15.603",
+                "vulnStatus": "Modified",
+                "descriptions": [
+                    {
+                        "lang": "en",
+                        "value": "A vulnerability has been found in SourceCodester Online Pizza Ordering System 1.0 and classified as critical. This vulnerability affects unknown code of the file admin/ajax.php?action=save_settings. The manipulation of the argument img leads to unrestricted upload. The attack can be initiated remotely. The exploit has been disclosed to the public and may be used. The identifier of this vulnerability is VDB-227236."
+                    }
+                ],
+                "metrics": {
+                    "cvssMetricV31": [
+                        {
+                            "source": "nvd@nist.gov",
+                            "type": "Primary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "NONE",
+                                "userInteraction": "NONE",
+                                "scope": "UNCHANGED",
+                                "confidentialityImpact": "HIGH",
+                                "integrityImpact": "HIGH",
+                                "availabilityImpact": "HIGH",
+                                "baseScore": 9.8,
+                                "baseSeverity": "CRITICAL"
+                            },
+                            "exploitabilityScore": 3.9,
+                            "impactScore": 5.9
+                        }
+                    ],
+                    "cvssMetricV30": [
+                        {
+                            "source": "cna@vuldb.com",
+                            "type": "Secondary",
+                            "cvssData": {
+                                "version": "3.0",
+                                "vectorString": "CVSS:3.0/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:L",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "LOW",
+                                "userInteraction": "NONE",
+                                "scope": "UNCHANGED",
+                                "confidentialityImpact": "LOW",
+                                "integrityImpact": "LOW",
+                                "availabilityImpact": "LOW",
+                                "baseScore": 6.3,
+                                "baseSeverity": "MEDIUM"
+                            },
+                            "exploitabilityScore": 2.8,
+                            "impactScore": 3.4
+                        }
+                    ],
+                    "cvssMetricV2": [
+                        {
+                            "source": "cna@vuldb.com",
+                            "type": "Secondary",
+                            "cvssData": {
+                                "version": "2.0",
+                                "vectorString": "AV:N/AC:L/Au:S/C:P/I:P/A:P",
+                                "accessVector": "NETWORK",
+                                "accessComplexity": "LOW",
+                                "authentication": "SINGLE",
+                                "confidentialityImpact": "PARTIAL",
+                                "integrityImpact": "PARTIAL",
+                                "availabilityImpact": "PARTIAL",
+                                "baseScore": 6.5
+                            },
+                            "baseSeverity": "MEDIUM",
+                            "exploitabilityScore": 8.0,
+                            "impactScore": 6.4,
+                            "acInsufInfo": false,
+                            "obtainAllPrivilege": false,
+                            "obtainUserPrivilege": false,
+                            "obtainOtherPrivilege": false,
+                            "userInteractionRequired": false
+                        }
+                    ]
+                },
+                "weaknesses": [
+                    {
+                        "source": "cna@vuldb.com",
+                        "type": "Primary",
+                        "description": [
+                            {
+                                "lang": "en",
+                                "value": "CWE-434"
+                            }
+                        ]
+                    },
+                    {
+                        "source": "nvd@nist.gov",
+                        "type": "Secondary",
+                        "description": [
+                            {
+                                "lang": "en",
+                                "value": "CWE-434"
+                            }
+                        ]
+                    }
+                ],
+                "configurations": [
+                    {
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:a:online_pizza_ordering_system_project:online_pizza_ordering_system:1.0:*:*:*:*:*:*:*",
+                                        "matchCriteriaId": "F6E8E2F0-0703-41CF-B750-06DAD69757E5"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "references": [
+                    {
+                        "url": "http://packetstormsecurity.com/files/172182/Online-Pizza-Ordering-System-1.0-Shell-Upload.html",
+                        "source": "cna@vuldb.com"
+                    },
+                    {
+                        "url": "https://docs.google.com/document/d/1Bzt1UOXHJYyNFvTUsMO4zfbiDd_cKxuEygjAww2GcZQ/edit",
+                        "source": "cna@vuldb.com",
+                        "tags": [
+                            "Exploit",
+                            "Third Party Advisory"
+                        ]
+                    },
+                    {
+                        "url": "https://vuldb.com/?ctiid.227236",
+                        "source": "cna@vuldb.com",
+                        "tags": [
+                            "Third Party Advisory"
+                        ]
+                    },
+                    {
+                        "url": "https://vuldb.com/?id.227236",
+                        "source": "cna@vuldb.com",
+                        "tags": [
+                            "Third Party Advisory"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "cve": {
+                "id": "CVE-2023-30845",
+                "sourceIdentifier": "security-advisories@github.com",
+                "published": "2023-04-26T21:15:09.277",
+                "lastModified": "2023-05-09T16:08:02.997",
+                "vulnStatus": "Analyzed",
+                "descriptions": [
+                    {
+                        "lang": "en",
+                        "value": "ESPv2 is a service proxy that provides API management capabilities using Google Service Infrastructure. ESPv2 2.20.0 through 2.42.0 contains an authentication bypass vulnerability. API clients can craft a malicious `X-HTTP-Method-Override` header value to bypass JWT authentication in specific cases.\n\nESPv2 allows malicious requests to bypass authentication if both the conditions are true: The requested HTTP method is **not** in the API service definition (OpenAPI spec or gRPC `google.api.http` proto annotations, and the specified `X-HTTP-Method-Override` is a valid HTTP method in the API service definition. ESPv2 will forward the request to your backend without checking the JWT. Attackers can craft requests with a malicious `X-HTTP-Method-Override` value that allows them to bypass specifying JWTs. Restricting API access with API keys works as intended and is not affected by this vulnerability.\n\nUpgrade deployments to release v2.43.0 or higher to receive a patch. This release ensures that JWT authentication occurs, even when the caller specifies `x-http-method-override`. `x-http-method-override` is still supported by v2.43.0+. API clients can continue sending this header to ESPv2."
+                    }
+                ],
+                "metrics": {
+                    "cvssMetricV31": [
+                        {
+                            "source": "nvd@nist.gov",
+                            "type": "Primary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "NONE",
+                                "userInteraction": "NONE",
+                                "scope": "UNCHANGED",
+                                "confidentialityImpact": "HIGH",
+                                "integrityImpact": "HIGH",
+                                "availabilityImpact": "HIGH",
+                                "baseScore": 9.8,
+                                "baseSeverity": "CRITICAL"
+                            },
+                            "exploitabilityScore": 3.9,
+                            "impactScore": 5.9
+                        },
+                        {
+                            "source": "security-advisories@github.com",
+                            "type": "Secondary",
+                            "cvssData": {
+                                "version": "3.1",
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N",
+                                "attackVector": "NETWORK",
+                                "attackComplexity": "LOW",
+                                "privilegesRequired": "NONE",
+                                "userInteraction": "NONE",
+                                "scope": "UNCHANGED",
+                                "confidentialityImpact": "HIGH",
+                                "integrityImpact": "LOW",
+                                "availabilityImpact": "NONE",
+                                "baseScore": 8.2,
+                                "baseSeverity": "HIGH"
+                            },
+                            "exploitabilityScore": 3.9,
+                            "impactScore": 4.2
+                        }
+                    ]
+                },
+                "weaknesses": [
+                    {
+                        "source": "security-advisories@github.com",
+                        "type": "Primary",
+                        "description": [
+                            {
+                                "lang": "en",
+                                "value": "CWE-287"
+                            }
+                        ]
+                    }
+                ],
+                "configurations": [
+                    {
+                        "nodes": [
+                            {
+                                "operator": "OR",
+                                "negate": false,
+                                "cpeMatch": [
+                                    {
+                                        "vulnerable": true,
+                                        "criteria": "cpe:2.3:a:google:espv2:*:*:*:*:*:*:*:*",
+                                        "versionStartIncluding": "2.20.0",
+                                        "versionEndExcluding": "2.43.0",
+                                        "matchCriteriaId": "A20AE068-D587-4CD1-AA65-AC686DDF6E4D"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "references": [
+                    {
+                        "url": "https://github.com/GoogleCloudPlatform/esp-v2/commit/0bcdfc024ce96b34db4e1b4f2211b509d9be93cd",
+                        "source": "security-advisories@github.com",
+                        "tags": [
+                            "Patch"
+                        ]
+                    },
+                    {
+                        "url": "https://github.com/GoogleCloudPlatform/esp-v2/commit/e95670146f5e96bb5565b0a9c1e153886b3e04ce",
+                        "source": "security-advisories@github.com",
+                        "tags": [
+                            "Patch"
+                        ]
+                    },
+                    {
+                        "url": "https://github.com/GoogleCloudPlatform/esp-v2/commit/e98061ee4527a564506ba4e814c0ecf324dc2c6f",
+                        "source": "security-advisories@github.com",
+                        "tags": [
+                            "Patch"
+                        ]
+                    },
+                    {
+                        "url": "https://github.com/GoogleCloudPlatform/esp-v2/security/advisories/GHSA-6qmp-9p95-fc5f",
+                        "source": "security-advisories@github.com",
+                        "tags": [
+                            "Vendor Advisory"
+                        ]
+                    }
+                ]
+            }
+        }
+    ]
+}

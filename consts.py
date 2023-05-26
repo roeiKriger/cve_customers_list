@@ -1,10 +1,6 @@
-# The interesting url
-#cve_url_list = "https://nvd.nist.gov/vuln/full-listing/2023/5"
-#site_base_url = "https://nvd.nist.gov"
-number_of_links_to_scan = 50
-# At the moment the url length is 45, but there are months that are also more than one digit, so added 1 to 46
-# #(in the future will just check the month with DATE TIME and then will validate)
-url_len = 46
-
-# With this rule we will be able to avoid some unwanted urls in the future, and unwanted scripts or urls in our code
-regex_rule_for_url = r"^https:\/\/(\w+(?:\.\w+)*\/)+vuln\/full-listing\/\d{4}\/\d{1,2}$"
+# These consts are all building together the API GET request to get details about each customer
+base_url = 'https://services.nvd.nist.gov/rest/json/cves/2.0?'
+keyword_customer_name = 'keywordSearch='
+dates = 'pubStartDate=2023-03-04T00:00:00.000&pubEndDate=2023-05-05T00:00:00.000'
+cvss_severity = 'cvssV3Severity=CRITICAL'
+max_results_to_return = 'resultsPerPage=100'

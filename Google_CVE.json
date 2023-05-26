@@ -1,0 +1,132 @@
+{
+    "Common Vulnerabilities": [
+        {
+            "id": "CVE-2023-26489",
+            "description": "wasmtime is a fast and secure runtime for WebAssembly. In affected versions wasmtime's code generator, Cranelift, has a bug on x86_64 targets where address-mode computation mistakenly would calculate a 35-bit effective address instead of WebAssembly's defined 33-bit effective address. This bug means that, with default codegen settings, a wasm-controlled load/store operation could read/write addresses up to 35 bits away from the base of linear memory. Due to this bug, however, addresses up to `0xffffffff * 8 + 0x7ffffffc = 36507222004 = ~34G` bytes away from the base of linear memory are possible from guest code. This means that the virtual memory 6G away from the base of linear memory up to ~34G away can be read/written by a malicious module. A guest module can, without the knowledge of the embedder, read/write memory in this region. The memory may belong to other WebAssembly instances when using the pooling allocator, for example. Affected embedders are recommended to analyze preexisting wasm modules to see if they're affected by the incorrect codegen rules and possibly correlate that with an anomalous number of traps during historical execution to locate possibly suspicious modules. The specific bug in Cranelift's x86_64 backend is that a WebAssembly address which is left-shifted by a constant amount from 1 to 3 will get folded into x86_64's addressing modes which perform shifts. For example `(i32.load (i32.shl (local.get 0) (i32.const 3)))` loads from the WebAssembly address `$local0 << 3`. When translated to Cranelift the `$local0 << 3` computation, a 32-bit value, is zero-extended to a 64-bit value and then added to the base address of linear memory. Cranelift would generate an instruction of the form `movl (%base, %local0, 8), %dst` which calculates `%base + %local0 << 3`. The bug here, however, is that the address computation happens with 64-bit values, where the `$local0 << 3` computation was supposed to be truncated to a a 32-bit value. This means that `%local0`, which can use up to 32-bits for an address, gets 3 extra bits of address space to be accessible via this `movl` instruction. The fix in Cranelift is to remove the erroneous lowering rules in the backend which handle these zero-extended expression. The above example is then translated to `movl %local0, %temp; shl $3, %temp; movl (%base, %temp), %dst` which correctly truncates the intermediate computation of `%local0 << 3` to 32-bits inside the `%temp` register which is then added to the `%base` value. Wasmtime version 4.0.1, 5.0.1, and 6.0.1 have been released and have all been patched to no longer contain the erroneous lowering rules. While updating Wasmtime is recommended, there are a number of possible workarounds that embedders can employ to mitigate this issue if updating is not possible. Note that none of these workarounds are on-by-default and require explicit configuration: 1. The `Config::static_memory_maximum_size(0)` option can be used to force all accesses to linear memory to be explicitly bounds-checked. This will perform a bounds check separately from the address-mode computation which correctly calculates the effective address of a load/store. Note that this can have a large impact on the execution performance of WebAssembly modules. 2. The `Config::static_memory_guard_size(1 << 36)` option can be used to greatly increase the guard pages placed after linear memory. This will guarantee that memory accesses up-to-34G away are guaranteed to be semantically correct by reserving unmapped memory for the instance. Note that this reserves a very large amount of virtual memory per-instances and can greatly reduce the maximum number of concurrent instances being run. 3. If using a non-x86_64 host is possible, then that will also work around this bug. This bug does not affect Wasmtime's or Cranelift's AArch64 backend, for example.",
+            "weaknesses": [
+                "CWE-125"
+            ]
+        },
+        {
+            "id": "CVE-2023-26075",
+            "description": "An issue was discovered in Samsung Mobile Chipset and Baseband Modem Chipset for Exynos 850, Exynos 980, Exynos 1080, Exynos 1280, Exynos 2200, Exynos Modem 5123, Exynos Modem 5300, and Exynos Auto T5123. An intra-object overflow in the 5G MM message codec can occur due to insufficient parameter validation when decoding the Service Area List.",
+            "weaknesses": [
+                "CWE-120"
+            ]
+        },
+        {
+            "id": "CVE-2023-26072",
+            "description": "An issue was discovered in Samsung Mobile Chipset and Baseband Modem Chipset for Exynos 850, Exynos 980, Exynos 1080, Exynos 1280, Exynos 2200, Exynos Modem 5123, Exynos Modem 5300, and Exynos Auto T5123. A heap-based buffer overflow in the 5G MM message codec can occur due to insufficient parameter validation when decoding the Emergency number list.",
+            "weaknesses": [
+                "CWE-787"
+            ]
+        },
+        {
+            "id": "CVE-2023-26074",
+            "description": "An issue was discovered in Samsung Mobile Chipset and Baseband Modem Chipset for Exynos 850, Exynos 980, Exynos 1080, Exynos 1280, Exynos 2200, Exynos Modem 5123, Exynos Modem 5300, and Exynos Auto T5123.. A heap-based buffer overflow in the 5G MM message codec can occur due to insufficient parameter validation when decoding operator-defined access category definitions.",
+            "weaknesses": [
+                "CWE-787"
+            ]
+        },
+        {
+            "id": "CVE-2023-26073",
+            "description": "An issue was discovered in Samsung Mobile Chipset and Baseband Modem Chipset for Exynos 850, Exynos 980, Exynos 1080, Exynos 1280, Exynos 2200, Exynos Modem 5123, Exynos Modem 5300, and Exynos Auto T5123. A heap-based buffer overflow in the 5G MM message codec can occur due to insufficient parameter validation when decoding the extended emergency number list.",
+            "weaknesses": [
+                "CWE-787"
+            ]
+        },
+        {
+            "id": "CVE-2023-26076",
+            "description": "An issue was discovered in Samsung Mobile Chipset and Baseband Modem Chipset for Exynos 1280, Exynos 2200, Exynos Modem 5123, Exynos Modem 5300, and Exynos Auto T5123. An intra-object overflow in the 5G SM message codec can occur due to insufficient parameter validation when decoding reserved options.",
+            "weaknesses": [
+                "CWE-120"
+            ]
+        },
+        {
+            "id": "CVE-2023-0037",
+            "description": "The 10Web Map Builder for Google Maps WordPress plugin before 1.0.73 does not properly sanitise and escape some parameters before using them in an SQL statement via an AJAX action available to unauthenticated users, leading to a SQL injection",
+            "weaknesses": [
+                "CWE-89"
+            ]
+        },
+        {
+            "id": "CVE-2023-1529",
+            "description": "Out of bounds memory access in WebHID in Google Chrome prior to 111.0.5563.110 allowed a remote attacker to potentially exploit heap corruption via a malicious HID device. (Chromium security severity: High)",
+            "weaknesses": [
+                "CWE-119"
+            ]
+        },
+        {
+            "id": "CVE-2023-24538",
+            "description": "Templates do not properly consider backticks (`) as Javascript string delimiters, and do not escape them as expected. Backticks are used, since ES6, for JS template literals. If a template contains a Go template action within a Javascript template literal, the contents of the action can be used to terminate the literal, injecting arbitrary Javascript code into the Go template. As ES6 template literals are rather complex, and themselves can do string interpolation, the decision was made to simply disallow Go template actions from being used inside of them (e.g. \"var a = {{.}}\"), since there is no obviously safe way to allow this behavior. This takes the same approach as github.com/google/safehtml. With fix, Template.Parse returns an Error when it encounters templates like this, with an ErrorCode of value 12. This ErrorCode is currently unexported, but will be exported in the release of Go 1.21. Users who rely on the previous behavior can re-enable it using the GODEBUG flag jstmpllitinterp=1, with the caveat that backticks will now be escaped. This should be used with caution.",
+            "weaknesses": [
+                "CWE-94",
+                "CWE-94"
+            ]
+        },
+        {
+            "id": "CVE-2023-27650",
+            "description": "An issue found in APUS Group Launcher v.3.10.73 and v.3.10.88 allows a remote attacker to execute arbitrary code via the FONT_FILE parameter.",
+            "weaknesses": [
+                "NVD-CWE-noinfo"
+            ]
+        },
+        {
+            "id": "CVE-2023-27645",
+            "description": "An issue found in POWERAMP audioplayer build 925 bundle play and build 954 allows a remote attacker to gain privileges via the reverb and EQ preset parameters.",
+            "weaknesses": [
+                "NVD-CWE-noinfo"
+            ]
+        },
+        {
+            "id": "CVE-2023-27779",
+            "description": "AM Presencia v3.7.3 was discovered to contain a SQL injection vulnerability via the user parameter in the login form.",
+            "weaknesses": [
+                "CWE-89"
+            ]
+        },
+        {
+            "id": "CVE-2022-47027",
+            "description": "Timmystudios Fast Typing Keyboard v1.275.1.162 allows unauthorized apps to overwrite arbitrary files in its internal storage via a dictionary traversal vulnerability and achieve arbitrary code execution.",
+            "weaknesses": [
+                "CWE-22"
+            ]
+        },
+        {
+            "id": "CVE-2023-27648",
+            "description": "Directory Traversal vulnerability found in T-ME Studios Change Color of Keypad v.1.275.1.277 allows a remote attacker to execute arbitrary code via the dex file in the internal storage.",
+            "weaknesses": [
+                "CWE-22"
+            ]
+        },
+        {
+            "id": "CVE-2023-27654",
+            "description": "An issue found in WHOv.1.0.28, v.1.0.30, v.1.0.32 allows an attacker to cause a escalation of privileges via the TTMultiProvider component.",
+            "weaknesses": [
+                "NVD-CWE-noinfo"
+            ]
+        },
+        {
+            "id": "CVE-2023-2136",
+            "description": "Integer overflow in Skia in Google Chrome prior to 112.0.5615.137 allowed a remote attacker who had compromised the renderer process to potentially perform a sandbox escape via a crafted HTML page. (Chromium security severity: High)",
+            "weaknesses": [
+                "CWE-190"
+            ]
+        },
+        {
+            "id": "CVE-2023-2246",
+            "description": "A vulnerability has been found in SourceCodester Online Pizza Ordering System 1.0 and classified as critical. This vulnerability affects unknown code of the file admin/ajax.php?action=save_settings. The manipulation of the argument img leads to unrestricted upload. The attack can be initiated remotely. The exploit has been disclosed to the public and may be used. The identifier of this vulnerability is VDB-227236.",
+            "weaknesses": [
+                "CWE-434",
+                "CWE-434"
+            ]
+        },
+        {
+            "id": "CVE-2023-30845",
+            "description": "ESPv2 is a service proxy that provides API management capabilities using Google Service Infrastructure. ESPv2 2.20.0 through 2.42.0 contains an authentication bypass vulnerability. API clients can craft a malicious `X-HTTP-Method-Override` header value to bypass JWT authentication in specific cases.\n\nESPv2 allows malicious requests to bypass authentication if both the conditions are true: The requested HTTP method is **not** in the API service definition (OpenAPI spec or gRPC `google.api.http` proto annotations, and the specified `X-HTTP-Method-Override` is a valid HTTP method in the API service definition. ESPv2 will forward the request to your backend without checking the JWT. Attackers can craft requests with a malicious `X-HTTP-Method-Override` value that allows them to bypass specifying JWTs. Restricting API access with API keys works as intended and is not affected by this vulnerability.\n\nUpgrade deployments to release v2.43.0 or higher to receive a patch. This release ensures that JWT authentication occurs, even when the caller specifies `x-http-method-override`. `x-http-method-override` is still supported by v2.43.0+. API clients can continue sending this header to ESPv2.",
+            "weaknesses": [
+                "CWE-287"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,60 @@
+{
+    "Common Vulnerabilities": [
+        {
+            "id": "CVE-2022-33256",
+            "description": "Memory corruption due to improper validation of array index in Multi-mode call processor.",
+            "weaknesses": [
+                "CWE-129"
+            ]
+        },
+        {
+            "id": "CVE-2022-40515",
+            "description": "Memory corruption in Video due to double free while playing 3gp clip with invalid metadata atoms.",
+            "weaknesses": [
+                "CWE-415"
+            ]
+        },
+        {
+            "id": "CVE-2022-40537",
+            "description": "Memory corruption in Bluetooth HOST while processing the AVRC_PDU_GET_PLAYER_APP_VALUE_TEXT AVRCP response.",
+            "weaknesses": [
+                "CWE-129"
+            ]
+        },
+        {
+            "id": "CVE-2022-25678",
+            "description": "Memory correction in modem due to buffer overwrite during coap connection",
+            "weaknesses": [
+                "CWE-787"
+            ]
+        },
+        {
+            "id": "CVE-2022-25740",
+            "description": "Memory corruption in modem due to buffer overwrite while building an IPv6 multicast address based on the MAC address of the iface",
+            "weaknesses": [
+                "CWE-787"
+            ]
+        },
+        {
+            "id": "CVE-2022-25745",
+            "description": "Memory corruption in modem due to improper input validation while handling the incoming CoAP message",
+            "weaknesses": [
+                "CWE-670"
+            ]
+        },
+        {
+            "id": "CVE-2022-33211",
+            "description": "memory corruption in modem due to improper check while calculating size of serialized CoAP message",
+            "weaknesses": [
+                "CWE-131"
+            ]
+        },
+        {
+            "id": "CVE-2022-33259",
+            "description": "Memory corruption due to buffer copy without checking the size of input in modem while decoding raw SMS received.",
+            "weaknesses": [
+                "CWE-120"
+            ]
+        }
+    ]
+}

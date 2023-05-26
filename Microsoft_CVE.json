@@ -1,0 +1,61 @@
+{
+    "Common Vulnerabilities": [
+        {
+            "id": "CVE-2022-45141",
+            "description": "Since the Windows Kerberos RC4-HMAC Elevation of Privilege Vulnerability was disclosed by Microsoft on Nov 8 2022 and per RFC8429 it is assumed that rc4-hmac is weak, Vulnerable Samba Active Directory DCs will issue rc4-hmac encrypted tickets despite the target server supporting better encryption (eg aes256-cts-hmac-sha1-96).",
+            "weaknesses": [
+                "CWE-327",
+                "CWE-328"
+            ]
+        },
+        {
+            "id": "CVE-2023-21708",
+            "description": "Remote Procedure Call Runtime Remote Code Execution Vulnerability",
+            "weaknesses": [
+                "NVD-CWE-noinfo"
+            ]
+        },
+        {
+            "id": "CVE-2023-23392",
+            "description": "HTTP Protocol Stack Remote Code Execution Vulnerability",
+            "weaknesses": [
+                "NVD-CWE-noinfo"
+            ]
+        },
+        {
+            "id": "CVE-2023-23397",
+            "description": "Microsoft Outlook Elevation of Privilege Vulnerability",
+            "weaknesses": [
+                "CWE-294"
+            ]
+        },
+        {
+            "id": "CVE-2023-23415",
+            "description": "Internet Control Message Protocol (ICMP) Remote Code Execution Vulnerability",
+            "weaknesses": [
+                "NVD-CWE-noinfo"
+            ]
+        },
+        {
+            "id": "CVE-2023-21554",
+            "description": "Microsoft Message Queuing Remote Code Execution Vulnerability",
+            "weaknesses": [
+                "NVD-CWE-noinfo"
+            ]
+        },
+        {
+            "id": "CVE-2023-23384",
+            "description": "Microsoft SQL Server Remote Code Execution Vulnerability",
+            "weaknesses": [
+                "NVD-CWE-noinfo"
+            ]
+        },
+        {
+            "id": "CVE-2023-28250",
+            "description": "Windows Pragmatic General Multicast (PGM) Remote Code Execution Vulnerability",
+            "weaknesses": [
+                "NVD-CWE-noinfo"
+            ]
+        }
+    ]
+}
