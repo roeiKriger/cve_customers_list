@@ -50,14 +50,16 @@ def read_customers_to_an_array():
     return customers
 
 
-def get_cve_monthly_links():
-    # Send a GET request to the URL and fetch the page content
-    response = requests.get(cve_url_list)
+def read_json_from_url_create_customer_json(full_url, customer_name):
+    response = requests.get(full_url)
     page_content = response.text
 
-    # Use regex to extract relative links starting with "CVE"
-    relative_links = re.findall(r'href="/vuln/detail/(CVE-\d+-\d+)"', page_content)
+    # Save the content to a new JSON file
+    output_filename = f"{customer_name}.json"
+    output_path = os.path.join(os.path.dirname(__file__), output_filename)
 
-    # Construct absolute URLs for the CVE links
-    links = [urljoin(site_base_url, "vuln/detail/" + link) for link in relative_links]
-    return links
+    with open(output_path, "w") as file:
+        json.dump(page_content, file)
+
+    print(f"Content saved to {output_filename}")
+

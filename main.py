@@ -2,6 +2,8 @@ from methods import *
 from consts import *
 import requests
 from bs4 import BeautifulSoup
+import json
+import os
 
 customers_list = read_customers_to_an_array()
 # Print the customer names
@@ -19,33 +21,43 @@ max_results_to_return = 'resultsPerPage=100'
 
 full_url = base_url+keyword_customer_name+customer_name+'&'+dates+'&'+cvss_severity+'&'+max_results_to_return
 
-response = requests.get(full_url)
-page_content = response.text
-print(page_content)
+#read_json_from_url_create_customer_json(full_url, customer_name)
 
+# Read the input JSON file
+with open(f'{customer_name}.json') as file:
+    data = json.load(file)
 
+# Extract required information and create a new JSON object
+cve_list = []
+for item in data['CVE_Items']:
+    cve_item = item['cve']['CVE_data_meta']['ID']
+    description = item['cve']['description']['description_data'][0]['value']
+    weaknesses = []
+    configurations = []
 
+    if 'problemtype' in item['cve']:
+        for weakness in item['cve']['problemtype']['problemtype_data']:
+            weaknesses.append(weakness['description'][0]['value'])
 
+    if 'configurations' in item['impact']:
+        for configuration in item['impact']['configurations']['nodes']:
+            if 'cpe_match' in configuration:
+                for cpe_match in configuration['cpe_match']:
+                    configurations.append(cpe_match['cpe23Uri'])
 
+    cve_dict = {
+        'id': cve_item,
+        'description': description,
+        'weaknesses': weaknesses,
+        'configurations': configurations
+    }
+    cve_list.append(cve_dict)
 
+# Create the output JSON file
+output_data = {'Common Vulnerabilities': cve_list}
 
-# check_url_integrity(cve_url_list, url_len, regex_rule_for_url)
-# links_of_the_month = get_cve_monthly_links()
-#
-#
-# # Extract the text inside the <p> tag from each link
-# data = []
-# for link in links_of_the_month:
-#     response = requests.get(link)
-#     page_content = response.text
-#     soup = BeautifulSoup(page_content, "html.parser")
-#     paragraph = soup.find("p", attrs={"data-testid": "vuln-description"})
-#     if paragraph:
-#         data.append(paragraph.text)
-#     break
-#
-# # Print the extracted text
-# for item in data:
-#     print(item)
-#     break
+with open(f'{customer_name}_CVE.json', 'w') as output_file:
+    json.dump(output_data, output_file, indent=4)
+
+print(f"{customer_name}_CVE.json file has been created.")
 
