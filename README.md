@@ -26,6 +26,7 @@ Basic Visualization of the program:
 
 
 ![image](https://github.com/roeiKriger/cve_customers_list/assets/66572300/fd943aaa-cd56-4b45-87ba-0e955eeb408a)
+
 ![image](https://github.com/roeiKriger/cve_customers_list/assets/66572300/c000a029-b111-4c89-aca0-747807ca9658)
 
 
