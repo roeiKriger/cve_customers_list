@@ -1,15 +1,17 @@
 import os
 import json
-import re
 import requests
 from consts import *
 
 
+# The method gets the customer name, and then it concat all the parts of the API call
+# (which can be changed, severity, dates and more...) then it creates the url for the GET Request
 def create_url_for_api_call(customer_name):
     full_url = base_url+keyword_customer_name+customer_name+'&'+dates+'&'+cvss_severity+'&'+max_results_to_return
     return full_url
 
 
+# The method read the customers JSON to an array
 def read_customers_to_an_array():
     # Get the directory path of the current Python file
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -26,6 +28,8 @@ def read_customers_to_an_array():
     return customers
 
 
+# The GET request returns a JSON, so need to read it and I save it to the project: the customer name.json
+# That way if I will want to use it again I will not need to do another API call.
 def read_json_from_url_create_customer_json(full_url, customer_name):
     response = requests.get(full_url)
     page_content = response.text
@@ -47,8 +51,9 @@ def read_json_from_url_create_customer_json(full_url, customer_name):
     print(f"Content saved to {output_filename}")
 
 
+# Here I read and save the data I have in the JSON I created before in a variable for future use
 def read_json_from_the_project_code(customer_name):
-    # Define the relative file path, each time we will get the data for another customer and craete json files for them
+    # Define the relative file path, each time we will get the data for another customer and create json files for them
     file_path = f'cve_customers_list/{customer_name}.json'
 
     # Get the absolute file path of the folders
@@ -59,6 +64,8 @@ def read_json_from_the_project_code(customer_name):
     return data, file_path
 
 
+# From the data I have about a customer, I want to get specific information and see what the description and the
+# weakness for each CVE, that way I can know how to exploit them or to patch them
 def create_cve_list_for_customer(information_for_json):
     cve_list = []
     for item in information_for_json['vulnerabilities']:
@@ -76,6 +83,7 @@ def create_cve_list_for_customer(information_for_json):
     return cve_list
 
 
+# After I collected the important information in the method above I save it to another json
 def create_cve_list_json(file_path, cve_list):
     # Extract the customer name from the file path
     customer_name = os.path.splitext(os.path.basename(file_path))[0]
